@@ -36,11 +36,12 @@ class Alexnet(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2),
             nn.ReLU(inplace=True),
+            nn.AvgPool2d(3),
         )
         
         self.classifer = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(256*3*3,1024),
+            nn.Linear(256,1024),
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(1024,1024),
@@ -50,7 +51,7 @@ class Alexnet(nn.Module):
         
     def forward(self, x):
         x = self.features(x)
-        x = x.view(-1,256*3*3)
+        x = x.view(-1,256)
         x = self.classifer(x)
         return x
 
@@ -72,7 +73,7 @@ def evl_test_acc(test_loader ,model, device = None):
     return correct / total
 
 
-batch_size = 256
+batch_size = 128
 lr = 0.1
 epochs = 60
 
@@ -132,6 +133,11 @@ for epoch in range(epochs):
     if epoch == 30:
         lr = lr * 0.1
         optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
+    
+    if epoch == 45:
+        lr = lr * 0.1
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
+        
     for i,data in enumerate(train_loader,0):
         inputs, labels = data
         inputs, labels = inputs.to(device), labels.to(device)
@@ -171,8 +177,8 @@ for epoch in range(epochs):
 
 print("best test accuracy is ",best_test_acc)
 
-# import matplotlib as mpl
-# mpl.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
