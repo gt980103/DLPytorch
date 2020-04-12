@@ -129,6 +129,7 @@ transform_test = transforms.Compose([
 testdata = torchvision.datasets.CIFAR10(root="data", train=False, download=True, transform=transform_test)
 correct = 0
 l2_max = 0.5
+l2_percent_total = 0
 l2_total = 0
 attack_total = 0
 total = 10000
@@ -181,7 +182,8 @@ for i in range(total):
             break      
         #如果无定向攻击成功
         if label != orig_label:
-            l2_total += l2_percent
+            l2_percent_total += l2_percent
+            l2_total += l2
             attack_total += 1
             #print("epoch={} label={} {} score={:.4f} confidence={:.4f} l2={:.4f} l2_percent={:.4f}"
             #  .format(epoch,label,classes[label],scores[label],torch.max(softmax(new_output)).item(),l2,l2_percent))
@@ -237,8 +239,10 @@ for i in range(total):
     #show_images_diff(orig,orig_label,adv,label,difference)
 
 print("Deepfool test accuracy rate: {:.4f}".format(correct/(total)))
-print("average l2_percentage : {}".format(l2_total/attack_total))
+print("average l2 : {}".format(l2_total/attack_total))
+print("average l2_percentage : {}".format(l2_percent_total/attack_total))
 with open("DeepfoolCIFAR10_log.txt","w") as f:
     f.write("Deepfool test accuracy rate: {:.4f}".format(correct/(total)))
-    f.write("average l2_percentage : {}".format(l2_total/attack_total))
+    f.write("average l2 : {}".format(l2_total/attack_total))
+    f.write("average l2_percentage : {}".format(l2_percent_total/attack_total))
     f.write("\n")

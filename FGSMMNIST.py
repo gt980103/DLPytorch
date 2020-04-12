@@ -59,11 +59,12 @@ class Alexnet(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2),
             nn.ReLU(inplace=True),
+            nn.AvgPool2d(3),
         )
         
         self.classifer = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(256*3*3,1024),
+            nn.Linear(256,1024),
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(1024,1024),
@@ -73,7 +74,7 @@ class Alexnet(nn.Module):
         
     def forward(self, x):
         x = self.features(x)
-        x = x.view(-1,256*3*3)
+        x = x.view(-1,256)
         x = self.classifer(x)
         return x
 
@@ -109,6 +110,7 @@ if __name__=="__main__":
     model.eval()
     total = 10000
     correct = 0
+    l2_percent_total = 0
     l2_total = 0
     attack_total = 0
     criterion = nn.CrossEntropyLoss()
@@ -161,20 +163,23 @@ if __name__=="__main__":
         #show_images_diff(orig_im, label, adv_image, predicted[0], difference)
         
         
-        print('测试样本扰动前的预测值：{}'.format(label.item()))
-        print('测试样本扰动后的预测值：{} l2:{} l2_percentage:{} '.format(predicted[0],l2,l2_percent))
+        #print('测试样本扰动前的预测值：{}'.format(label.item()))
+        #print('测试样本扰动后的预测值：{} l2:{} l2_percentage:{} '.format(predicted[0],l2,l2_percent))
         
         if predicted[0].cpu()==label:
-            print("攻击失败")
+            #print("攻击失败")
             correct += 1
         else:
-            l2_total += l2_percent
+            l2_percent_total += l2_percent
+            l2_total += l2
             attack_total += 1
         
         
     print("FGSM test accuracy rate: {:.4f}".format(correct/(total)))
-    print("average l2_percentage:{}".format(l2_total/attack_total))
+    print("average l2 : {}".format(l2_total/attack_total))
+    print("average l2_percentage:{}".format(l2_percent_total/attack_total))
     with open("FGSMMNIST_log.txt","w") as f:
         f.write("FGSM test accuracy rate: {:.4f}".format(correct/(total)))
-        f.write("average l2_percentage : {}".format(l2_total/attack_total))
+        f.write("average l2 : {}".format(l2_total/attack_total))
+        f.write("average l2_percentage : {}".format(l2_percent_total/attack_total))
         f.write("\n")

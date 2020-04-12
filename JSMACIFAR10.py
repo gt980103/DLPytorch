@@ -245,7 +245,7 @@ def jsma_attack(image, target, theta, gamma, model):
 
 if __name__=="__main__":
 
-    with open("log.txt","w") as f:
+    with open("JSMACIFAR10_log.txt","w") as f:
         f.write("log file")
         f.write("\n")
     mean = (0.4914, 0.4822, 0.4465)
@@ -271,7 +271,7 @@ if __name__=="__main__":
     start = time.time()
     for i in range(total):
         print(i,time.time()-start)
-        with open("log.txt","a") as f:
+        with open("JSMACIFAR10_log.txt","a") as f:
             f.write(str(i)+" "+str(time.time()-start)+"ms")
             f.write("\n")
         
@@ -336,7 +336,7 @@ if __name__=="__main__":
     
     print("JSMA test accuracy rate: {:.4f}".format(correct/(total*9)))
     print("average l0:{} l0_percentage:{}".format(l0_total/attack_total,l0_total/attack_total/np.prod(orig_im.shape)))
-    with open("log.txt","a") as f:
+    with open("JSMACIFAR10_log.txt","a") as f:
         f.write("JSMA test accuracy rate: {:.4f}".format(correct/(total*9)))
         f.write("\n")
         f.write("average l0:{} l0_percentage:{}".format(l0_total/attack_total,l0_total/attack_total/np.prod(orig_im.shape)))

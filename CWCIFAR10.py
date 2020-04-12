@@ -17,6 +17,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
+now_time = time.time()
+
 def show_images_diff(original_img,original_label,adversarial_img,adversarial_label,difference):
     plt.figure()
         
@@ -136,9 +138,14 @@ transform_test = transforms.Compose([
 
 testdata = torchvision.datasets.CIFAR10(root="data", train=False, download=True, transform=transform_test)
 
-total = 5
+total = 500
 correct = 0
 l2_total = []
+l2_percentage = []
+with open("CWCIFAR10log.txt","w") as f:
+    f.write("log file")
+    f.write("\n")
+
 for i in range(total):
     img = testdata[i][0].unsqueeze(0).to(device)
     orig_label = testdata[i][1]
@@ -155,7 +162,7 @@ for i in range(total):
     boxplus = (boxmin + boxmax) / 2.
     
     
-    for target in range(1):
+    for target in range(10):
         
         if target == orig_label:
             continue
@@ -231,27 +238,43 @@ for i in range(total):
                 else:
                     c *= 10
             print("outer_step={} c {}->{}".format(outer_step,old_c,c))
+            with open("CWCIFAR10log.txt","a") as f:
+                f.write("attack success l2={} target_label={} ".format(o_bestl2,target))
+                f.write("outer_step={} c {}->{}".format(outer_step,old_c,c))
+                f.write("\n")
         if o_bestscore == orig_label:
             correct += 1
         
         if o_bestscore == target:
             l2_total.append(o_bestl2)
+            l2_img = np.linalg.norm(img.detach().cpu().numpy()[0].transpose(1,2,0))
+            l2_percentage.append(o_bestl2 / l2_img)
             
         orig_img = img.detach().cpu().numpy()[0].transpose(1,2,0)
-        adv_img = o_bestattack[0].transpose(1,2,0)
-        difference = adv_img - orig_img
+        #adv_img = o_bestattack[0].transpose(1,2,0)
+        #difference = adv_img - orig_img
         
-        orig_img = orig_img * std + mean
-        adv_img = adv_img * std + mean
-        difference = difference * std + mean
+        #orig_img = orig_img * std + mean
+        #adv_img = adv_img * std + mean
+        #difference = difference * std + mean
         
-        orig_img = np.clip(orig_img, 0, 1)  
-        adv_img = np.clip(adv_img, 0 ,1)  
-        difference = difference / abs(difference).max() / 2.0 +0.5          
-        show_images_diff(orig_img, orig_label, adv_img, target, difference)
+        #orig_img = np.clip(orig_img, 0, 1)  
+        #adv_img = np.clip(adv_img, 0 ,1)  
+        #difference = difference / abs(difference).max() / 2.0 +0.5          
+        #show_images_diff(orig_img, orig_label, adv_img, target, difference)
         
         
-        print(" {}  {} ms".format(i,time.time() - start_time))     
+        print(" {}  {} ms".format(i,time.time() - start_time)) 
+        with open("CWCIFAR10log.txt","a") as f:
+            f.write("attack success l2={} target_label={}".format(o_bestl2,target))
+            f.write(" {}  {} ms".format(i,time.time() - start_time))
+            f.write("\n")
 
 print("CW test accuracy rate: {:.4f}".format(correct/(total*9)))
-print("average l2:{} l2_percentage:{}".format(np.mean(l2_total),np.mean(l2_total)/np.linalg.norm(img.detach().cpu().numpy()[0].transpose(1,2,0))))
+print("average l2:{} l2_percentage:{}".format(np.mean(l2_total),np.mean(l2_percentage)))
+print("total time : {} ms".format(time.time() - now_time))
+with open("CWCIFAR10log.txt","a") as f:
+    f.write("CW test accuracy rate: {:.4f}".format(correct/(total*9)))
+    f.write("average l2:{} l2_percentage:{}".format(np.mean(l2_total),np.mean(l2_percentage)))
+    f.write("total time : {} ms".format(time.time() - now_time))
+    f.write("\n")

@@ -6,7 +6,7 @@ Created on Thu Mar 19 18:02:01 2020
 """
 
 
-
+import time
 import numpy as np
 import torch
 import torch.nn as nn
@@ -61,11 +61,12 @@ class Alexnet(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2),
             nn.ReLU(inplace=True),
+            nn.AvgPool2d(3),
         )
         
         self.classifer = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(256*3*3,1024),
+            nn.Linear(256,1024),
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(1024,1024),
@@ -75,7 +76,7 @@ class Alexnet(nn.Module):
         
     def forward(self, x):
         x = self.features(x)
-        x = x.view(-1,256*3*3)
+        x = x.view(-1,256)
         x = self.classifer(x)
         return x
 
@@ -218,7 +219,9 @@ def jsma_attack(image, target, theta, gamma, model):
 
 if __name__=="__main__":
 
-    
+    with open("JSMAMNIST_log.txt","w") as f:
+        f.write("log file")
+        f.write("\n")
     mean = (0.1307,)
     std = (0.3081,)
     
@@ -239,8 +242,12 @@ if __name__=="__main__":
     correct = 0
     l0_total = 0
     attack_total = 0
+    start = time.time()
     for i in range(total):
-        print(i)
+        print(i,time.time()-start)
+        with open("JSMAMNIST_log.txt","a") as f:
+            f.write(str(i)+" "+str(time.time()-start)+"ms")
+            f.write("\n")
         # 选择测试样本
         image = testdata[i][0].unsqueeze(0).to(device) # 测试样本特征
         label = torch.tensor([testdata[i][1]]) # 测试样本真实标签
@@ -298,3 +305,7 @@ if __name__=="__main__":
                 correct += 1
     print("JSMA test accuracy rate: {:.4f}".format(correct/(total*9)))
     print("average l0:{} l0_percentage:{}".format(l0_total/attack_total,l0_total/attack_total/np.prod(orig_im.shape)))
+    with open("JSMAMNIST_log.txt","a") as f:
+        f.write("JSMA test accuracy rate: {:.4f}".format(correct/(total*9)))
+        f.write("\n")
+        f.write("average l0:{} l0_percentage:{}".format(l0_total/attack_total,l0_total/attack_total/np.prod(orig_im.shape)))

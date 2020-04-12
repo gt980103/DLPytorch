@@ -13,6 +13,8 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+now_time = time.time()
+
 def show_images_diff(original_img,original_label,adversarial_img,adversarial_label,difference):
     plt.figure()
         
@@ -58,11 +60,12 @@ class Alexnet(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2),
             nn.ReLU(inplace=True),
+            nn.AvgPool2d(3),
         )
         
         self.classifer = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(256*3*3,1024),
+            nn.Linear(256,1024),
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(1024,1024),
@@ -72,7 +75,7 @@ class Alexnet(nn.Module):
         
     def forward(self, x):
         x = self.features(x)
-        x = x.view(-1,256*3*3)
+        x = x.view(-1,256)
         x = self.classifer(x)
         return x
     
@@ -90,13 +93,13 @@ std = (0.3081,)
 
 num_classes = 10
 #c的初始值
-initial_const=10
+initial_const=2
 #adam的最大迭代次数 论文中建议10000次
-max_iterations=500
+max_iterations=200
 #adam学习速率
-learning_rate=0.05
+learning_rate=0.1
 #二分查找最大次数
-binary_search_steps=5
+binary_search_steps=4
 #k值
 k=40
 
@@ -107,9 +110,14 @@ transform_test = transforms.Compose([
 
 testdata = torchvision.datasets.MNIST(root="data", train=False, download=True, transform=transform_test)
 
-total = 5
+total = 500
 correct = 0
 l2_total = []
+l2_percentage = []
+with open("CWMNISTlog.txt","w") as f:
+    f.write("log file")
+    f.write("\n")
+
 for i in range(total):
     img = testdata[i][0].unsqueeze(0).to(device)
     orig_label = testdata[i][1]
@@ -125,9 +133,9 @@ for i in range(total):
     boxmul = (boxmax - boxmin) / 2.
     boxplus = (boxmin + boxmax) / 2.
     
-    start_time = time.time()
+    
     for target in range(10):
-        
+        start_time = time.time()
         if target == orig_label:
             continue
         
@@ -202,26 +210,41 @@ for i in range(total):
                 else:
                     c *= 10
             print("outer_step={} c {}->{}".format(outer_step,old_c,c))
+            with open("CWMNISTlog.txt","a") as f:
+                f.write("attack success l2={} target_label={} ".format(o_bestl2,target))
+                f.write("outer_step={} c {}->{}".format(outer_step,old_c,c))
+                f.write("\n")
         if o_bestscore == orig_label:
             correct += 1
         
         if o_bestscore == target:
             l2_total.append(o_bestl2)
+            l2_img = np.linalg.norm(img.detach().cpu().numpy()[0].transpose(1,2,0))
+            l2_percentage.append(o_bestl2 / l2_img)
         orig_img = img.detach().cpu().numpy().reshape(28, 28)
-        adv_img = o_bestattack.reshape(28, 28)
-        difference = adv_img - orig_img
+        #adv_img = o_bestattack.reshape(28, 28)
+        #difference = adv_img - orig_img
         
-        orig_img = orig_img * std + mean
-        adv_img = adv_img * std + mean
-        difference = difference * std + mean
+        #orig_img = orig_img * std + mean
+        #adv_img = adv_img * std + mean
+        #difference = difference * std + mean
         
-        orig_img = np.clip(orig_img, 0, 1)  
-        adv_img = np.clip(adv_img, 0 ,1)  
-        difference = difference / abs(difference).max() / 2.0 +0.5          
-        show_images_diff(orig_img, orig_label, adv_img, target, difference)
+        #orig_img = np.clip(orig_img, 0, 1)  
+        #adv_img = np.clip(adv_img, 0 ,1)  
+        #difference = difference / abs(difference).max() / 2.0 +0.5          
+        #show_images_diff(orig_img, orig_label, adv_img, target, difference)
         
-        
-    print(" {}  {} ms".format(i,time.time() - start_time))     
+        print(" {}  {} ms".format(i,time.time() - start_time))     
+        with open("CWMNISTlog.txt","a") as f:
+            f.write("attack success l2={} target_label={}".format(o_bestl2,target))
+            f.write(" {}  {} ms".format(i,time.time() - start_time))
+            f.write("\n")
 
 print("CW test accuracy rate: {:.4f}".format(correct/(total*9)))
-print("average l2:{} l2_percentage:{}".format(np.mean(l2_total),np.mean(l2_total)/np.linalg.norm(img.detach().cpu().numpy()[0].transpose(1,2,0))))
+print("average l2:{} l2_percentage:{}".format(np.mean(l2_total),np.mean(l2_percentage)))
+print("total time : {} ms".format(time.time() - now_time))
+with open("CWMNISTlog.txt","a") as f:
+    f.write("CW test accuracy rate: {:.4f}".format(correct/(total*9)))
+    f.write("average l2:{} l2_percentage:{}".format(np.mean(l2_total),np.mean(l2_percentage)))
+    f.write("total time : {} ms".format(time.time() - now_time))
+    f.write("\n")

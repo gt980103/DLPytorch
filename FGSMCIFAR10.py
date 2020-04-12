@@ -136,6 +136,7 @@ if __name__=="__main__":
     total = 10000
     correct = 0
     l2_total = 0
+    l2_percent_total = 0
     attack_total = 0
     criterion = nn.CrossEntropyLoss()
     for i in range(total):
@@ -190,12 +191,15 @@ if __name__=="__main__":
             #print("攻击失败")
             correct += 1
         else:
-            l2_total += l2_percent
+            l2_percent_total += l2_percent
+            l2_total += l2
             attack_total += 1
         
     print("FGSM test accuracy rate: {:.4f}".format(correct/(total)))
-    print("average l2_percentage:{}".format(l2_total/attack_total))
+    print("average l2 : {}".format(l2_total/attack_total))
+    print("average l2_percentage:{}".format(l2_percent_total/attack_total))
     with open("FGSMCIFAR10_log.txt","w") as f:
         f.write("FGSM test accuracy rate: {:.4f}".format(correct/(total)))
-        f.write("average l2_percentage : {}".format(l2_total/attack_total))
+        f.write("average l2 : {}".format(l2_total/attack_total))
+        f.write("average l2_percentage : {}".format(l2_percent_total/attack_total))
         f.write("\n")
